@@ -80,6 +80,7 @@ RUN source /opt/ros/"$ROS_DISTRO"/setup.bash \
 COPY demo.repos /autoware/
 RUN --mount=type=ssh \
   vcs import src < demo.repos \
+  && source /autoware/install/setup.bash \
   && colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release --packages-select autoware_launch \
   && find /autoware/install -type d -exec chmod 777 {} \;
 
