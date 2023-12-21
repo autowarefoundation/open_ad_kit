@@ -1,37 +1,73 @@
 version: 2
 
 artifacts:
-  - name: main
+  - name: planning
     build:
-      type: tier4/universe/main/amd64/v1
+      type: custom
+      runtime:
+        type: standard1/arm64/large
+      source:
+        vcstool:
+          repositories_files:
+            - autoware.repos
+          import_path: src
+      base_container_image:
+        from: ghcr.io/autowarefoundation/autoware-openadk:ces-planning-after-aarch64
+      phases:
+        - name: init
+          exec: "true"
+      output_container_image:
+        from: init
+        workdir: /autoware
+  - name: scenario_simulator_v2
+    build:
+      type: custom
+      runtime:
+        type: standard1/arm64/large
+      source:
+        vcstool:
+          repositories_files:
+            - dependency_humble.repos
+          import_path: src
+      base_container_image:
+        from: ghcr.io/autowarefoundation/autoware-openadk:ces-simulator-aarch64
+      phases:
+        - name: init
+          exec: "true"
+      output_container_image:
+        from: init
 
 simulations:
-  - name: lexus_planning_sim
+  - name: planning_sim
     type: planning_sim_v2
     simulator:
       deployment:
         type: container
-        artifact: main
+        artifact: scenario_simulator_v2
       runtime:
-        type: simulator/standard1/amd64/medium
-        cpu: 8
-        memory: 16384
+        type: standard1/arm64/medium
       parameters:
-        launch_autoware: "true"
+        launch_autoware: "false"
         autoware_launch_package: autoware_launch
         autoware_launch_file: planning_simulator.launch.xml
         architecture_type: awf/universe
         vehicle_model: sample_vehicle
         sensor_model: sample_sensor_kit
         initialize_duration: "45"
-
-release:
-  components:
-    - name: planning
-      deployment:
-        type: container
-        artifact: main
-    - name: perception
-      deployment:
-        type: container
-        artifact: main
+    components:
+      - name: planning
+        deployment:
+          type: container
+          artifact: planning
+        runtime:
+          type: standard1/arm64/medium
+        application:
+          roslaunch:
+            package_name: autoware_launch
+            file_name: planning_simulator.launch.xml
+            arguments:
+              architecture_type: awf/universe
+              sensor_model: sample_sensor_kit
+              vehicle_model: sample_vehicle
+              map_path: ${map_path}
+              scenario_simulation: "true"
